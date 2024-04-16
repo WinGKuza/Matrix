@@ -8,14 +8,15 @@ namespace Matrix
 {
     internal class Program
     {
-        static float eps = 0.01f;
+        static float eps = 0.001f;
 
         static void Main(string[] args)
         {
             float[,] A1 = { { 2, 1.99999f, 3, 1 }, { 1, 1, 1, 1 }, { 1, -1, -2, 1 }, { 1, 2, 1, 1 } }, 
                 A2 = { { 1, 9, 1 }, { 2, 2, 11 }, { 10, 2, 1 } },
-                _A2 = { { 10, 2, 1 }, { 1, 9, 1 }, { 2, 2, 11 }  };
-            float[] b1 = { 7.99997f, 2, -1, 5 }, b2 = { 12, 26, 14 }, _b2 = { 14, 12, 26 };
+                _A2 = { { 10, 2, 1 }, { 1, 9, 1 }, { 2, 2, 11 }  },
+                A3 = { { 10, 2, 1 }, { 5, 30, 6 }, { 3, 4, 20 } };
+            float[] b1 = { 7.99997f, 2, -1, 5 }, b2 = { 12, 26, 14 }, _b2 = { 14, 12, 26 }, b3 = { 13, 41, 27 };
 
             Console.WriteLine("Изначальная матрица:\n ");
             PrintMatrix(A1, b1);
@@ -23,7 +24,16 @@ namespace Matrix
             GaussWithMainElement(A1, b1);
             GaussWithoutMainElement(A1, b1);
 
+            Console.WriteLine("Изначальная матрица:\n ");
+            PrintMatrix(_A2, _b2);
+
             PrintRoots(SeidelMethod(_A2, _b2));
+
+            Console.WriteLine("Изначальная матрица:\n ");
+            PrintMatrix(A3, b3);
+
+            PrintRoots(SeidelMethod(A3, b3));
+
             Console.ReadLine();
         }
 
