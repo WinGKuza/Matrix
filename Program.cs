@@ -8,25 +8,53 @@ namespace Matrix
 {
     internal class Program
     {
-
+        static float eps = 0.01f;
 
         static void Main(string[] args)
         {
-            float[,] A = { { 2, 1.99999f, 3, 1 }, { 1, 1, 1, 1 }, { 1, -1, -2, 1 }, { 1, 2, 1, 1 } };
-            float[] b = { 7.99997f, 2, -1, 5 };
+            float[,] A1 = { { 2, 1.99999f, 3, 1 }, { 1, 1, 1, 1 }, { 1, -1, -2, 1 }, { 1, 2, 1, 1 } }, 
+                A2 = { { 10, 2, 1 }, { 1, 9, 1 }, { 2, 2, 11 },  };
+            float[] b1 = { 7.99997f, 2, -1, 5 }, b2 = { 14, 12, 26 };
 
             Console.WriteLine("Изначальная матрица:\n ");
-            PrintMatrix(A, b);
+            PrintMatrix(A1, b1);
+            
+            GaussWithMainElement(A1, b1);
+            GaussWithoutMainElement(A1, b1);
 
-            GaussWithMainElement(A, b);
-            GaussWithoutMainElement(A, b);
-
+            PrintMatrix(SeidelMethod(A2, b2));
             Console.ReadLine();
         }
 
+        ///<summary>Создать копию массива.</summary>
+        static float[] CreateCopyMatrix(float[] matrix)
+        {
+            float[] A = new float[matrix.Length];
+
+            for (int i = 0; i < matrix.GetLength(0); i++)
+            {
+                A[i] = matrix[i];
+            }
+            return A;
+        }
+
+        ///<summary>Создаать копию матрицы.</summary>
+        static float[,] CreateCopyMatrix(float[,] matrix)
+        {
+            float[,] A = new float[matrix.GetLength(0), matrix.GetLength(1)];
+
+            for (int i = 0; i < matrix.GetLength(0); i++)
+            {
+                for (int j = 0; j < matrix.GetLength(1); j++) A[i, j] = matrix[i, j];
+            }
+            return A;
+        }
 
         ///<summary>Метод Гаусса без выбора главного элемента</summary>
-        static void GaussWithoutMainElement(float[,] A, float[] b) {
+        static void GaussWithoutMainElement(float[,] matrix, float[] array) {
+            float[,] A = CreateCopyMatrix(matrix);
+            float[] b = CreateCopyMatrix(array);
+
             Console.WriteLine("\nМетод Гаусса без выбора главного элемента:\n ");
             (A, b) = DirectCourseWithoutMainElement(A, b);
             PrintMatrix(A, b);
@@ -34,8 +62,11 @@ namespace Matrix
         }
 
         ///<summary>Метод Гаусса с выбором главного элемента по всей матрице</summary>
-        static void GaussWithMainElement(float[,] A, float[] b)
+        static void GaussWithMainElement(float[,] matrix, float[] array)
         {
+            float[,] A = CreateCopyMatrix(matrix);
+            float[] b = CreateCopyMatrix(array);
+
             Console.WriteLine("\nМетод Гаусса с выбором главного элемента по всей матрице: \n");
             int[] pos = new int[A.GetLength(0)];
             for (int i = 0; i < A.GetLength(0); i++) pos[i] = i;
@@ -44,31 +75,41 @@ namespace Matrix
             PrintRoots(ReverseCourse(A, b, pos));
         }
 
-        ///<summary>Метод простых итераций</summary>
-        static void SimpleIterations(float[,] A, float[] b)
+        ///<summary>Метод Зейделя</summary>
+        static float[] SeidelMethod(float[,] matrix, float[] array)
         {
+            float[,] A = CreateCopyMatrix(matrix);
+            float[] b = CreateCopyMatrix(array);
+
             (A, b) = CheckDiagonalElements(A, b);
             (A, b) = MakeMatrixForSimpleIterations(A, b);
-            float[] x = new float[A.GetLength(0)], _x = new float[A.GetLength(0)];
+            PrintMatrix(A, b);
+            int c = 0;
+            float[] x = CreateCopyMatrix(b), _x = CreateCopyMatrix(b);
             while (true)
             {
                 for (int i = 0; i < A.GetLength(0); i++)
                 {
                     x[i] = b[i];
-                    for (int j = 0; j < A.GetLength(0); j++) 
-                        x[i] += j >= i ? A[i, j] * b[i] : A[i, j] * _x[j];
-                    _x = x;
+                    for (int j = 0; j < A.GetLength(0); j++)
+                        x[i] += j >= i ? A[i, j] * _x[j] : A[i, j] * x[j];
+                        // if (j != i) x[i] += A[i, j] * x[j];
+
                 }
-                
+                c++;
+                PrintMatrix(x);
+                PrintMatrix(_x);
+                Console.WriteLine(MakeNorma(_x, x));
+                if (MakeNorma(_x, x) <= eps) return x;
+                _x = CreateCopyMatrix(x);
             }
-            if (!CheckNorma(A, x)) throw new Exception("Норма >= 1!"); // ПРОВЕРИТЬ!
         }
 
-        static bool CheckNorma(float[,] A, float[] lenVectorX)
+        static float MakeNorma(float[] _x, float[] x)
         {
-            float normaA = 0;
-            for (int i = 0; i < A.GetLength(0); i++) normaA += lenVectorX[i];
-            return normaA < 1;
+            float sum = 0;
+            for (int i = 0; i < x.Length; i++) sum += (_x[i] - x[i]) * (_x[i] - x[i]);
+            return (float)Math.Sqrt(sum);
         }
 
         ///<summary>Сформировать новые матрицы для простых итериций</summary>
@@ -90,27 +131,6 @@ namespace Matrix
             for (int i = 0; i < A.GetLength(0); i++) NonzeroElement(i, A, b);
             return (A, b);
         }
-
-        ///<summary>Проверяет выполнение условия иттераций</summary>
-        /*static bool IterationConditionIsSatisfied(float[,] A)
-        {
-            for (int i = 0; i < A.GetLength(0); i++)
-            {
-               float sum = 0;
-               for(int j = 0; j < A.GetLength(1); j++)
-               {
-                    if (i != j)
-                    {
-                        sum += Math.Abs(A[i, j]);
-                    }
-               }
-               if (sum > Math.Abs(A[i, i]))
-               {
-                    return false;
-               }
-            }
-            return true;
-        } */
 
         ///<summary>Меняет местами строки с индексами index1 и index 2 в матрице и возвращает изменненую матрицу.</summary>
         static float[,] SwapRows(int index1, int index2, float[,] matrix)
@@ -273,7 +293,7 @@ namespace Matrix
         {
             for (int i = 0; i < floats.GetLength(0); i++)
             {
-                for (int j = 0; j < floats.GetLength(0); j++) Console.Write("{0}\t", floats[i, j]);
+                for (int j = 0; j < floats.GetLength(1); j++) Console.Write("{0, 15}", floats[i, j]);
                 Console.WriteLine();
             }
             Console.WriteLine();
