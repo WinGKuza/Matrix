@@ -13,8 +13,9 @@ namespace Matrix
         static void Main(string[] args)
         {
             float[,] A1 = { { 2, 1.99999f, 3, 1 }, { 1, 1, 1, 1 }, { 1, -1, -2, 1 }, { 1, 2, 1, 1 } }, 
-                A2 = { { 10, 2, 1 }, { 1, 9, 1 }, { 2, 2, 11 },  };
-            float[] b1 = { 7.99997f, 2, -1, 5 }, b2 = { 14, 12, 26 };
+                A2 = { { 1, 9, 1 }, { 2, 2, 11 }, { 10, 2, 1 } },
+                _A2 = { { 10, 2, 1 }, { 1, 9, 1 }, { 2, 2, 11 }  };
+            float[] b1 = { 7.99997f, 2, -1, 5 }, b2 = { 12, 26, 14 }, _b2 = { 14, 12, 26 };
 
             Console.WriteLine("Изначальная матрица:\n ");
             PrintMatrix(A1, b1);
@@ -22,7 +23,7 @@ namespace Matrix
             GaussWithMainElement(A1, b1);
             GaussWithoutMainElement(A1, b1);
 
-            PrintMatrix(SeidelMethod(A2, b2));
+            PrintRoots(SeidelMethod(_A2, _b2));
             Console.ReadLine();
         }
 
@@ -83,29 +84,47 @@ namespace Matrix
 
             (A, b) = CheckDiagonalElements(A, b);
             (A, b) = MakeMatrixForSimpleIterations(A, b);
-            PrintMatrix(A, b);
-            int c = 0;
+            if (Norma(A) < 1) Console.WriteLine("Итерационный процесс сходится. (||alpha|| = {0} < 1)", Norma(A));
+            else throw new Exception("Итерационный процесс не сходится!");
+            float[,] alpha2 = MakeAlpha2(A);
             float[] x = CreateCopyMatrix(b), _x = CreateCopyMatrix(b);
             while (true)
             {
                 for (int i = 0; i < A.GetLength(0); i++)
                 {
                     x[i] = b[i];
-                    for (int j = 0; j < A.GetLength(0); j++)
-                        x[i] += j >= i ? A[i, j] * _x[j] : A[i, j] * x[j];
-                        // if (j != i) x[i] += A[i, j] * x[j];
-
+                    for (int j = 0; j < A.GetLength(1); j++)
+                        x[i] += j != i ? A[i, j] * x[j] : 0;
                 }
-                c++;
-                PrintMatrix(x);
-                PrintMatrix(_x);
-                Console.WriteLine(MakeNorma(_x, x));
-                if (MakeNorma(_x, x) <= eps) return x;
+                //if (Norma(_x, x) <= eps) return x; // Проверка окончания итерационного процесса из пункта 2.9
+                if (Norma(_x, x) <= (1 - Norma(A)) / Norma(alpha2) * eps) return x; // Проверка окончания итерационного процесса из пункта 2.10
                 _x = CreateCopyMatrix(x);
             }
         }
 
-        static float MakeNorma(float[] _x, float[] x)
+        ///<summary>Считает alpha2 для alpha
+        static float[,] MakeAlpha2(float[,] A)
+        {
+            float[,] alpha2 = new float[A.GetLength(0), A.GetLength(1)];
+            for (int i = 0; i < A.GetLength(0); i++)
+            {
+                for (int j = 0; j < A.GetLength(1); j++) alpha2[i, j] = j <= i ? 0 : A[i, j];
+            }
+            return alpha2;
+        }
+
+        ///<summary>Считает норму матрицы
+        static float Norma(float[,] A)
+        {
+            float sum = 0;
+            for (int i = 0; i < A.GetLength(0); i++)
+            {
+                for (int j = 0; j < A.GetLength(1); j++) sum += A[i, j] * A[i, j];
+            }
+            return (float)Math.Sqrt(sum);
+        }
+        ///<summary>Считает норму разницы двух векторов
+        static float Norma(float[] _x, float[] x)
         {
             float sum = 0;
             for (int i = 0; i < x.Length; i++) sum += (_x[i] - x[i]) * (_x[i] - x[i]);
@@ -120,7 +139,7 @@ namespace Matrix
             {
                 float k = A[i, i];
                 b[i] = b[i] / k ;
-                for (int j = 0; j < A.GetLength(0); j++) A[i, j] = i == j ? -A[i, j] / k : 0 ;
+                for (int j = 0; j < A.GetLength(0); j++) A[i, j] = i == j ? 0 : -A[i, j] / k;
             }
             return (A, b);
         }
